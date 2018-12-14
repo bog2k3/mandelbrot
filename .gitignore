@@ -1,0 +1,9 @@
+mandelbrot.project
+mandelbrot.workspace
+Makefile
+GLMandelbrot
+CMakeFiles/
+CMakeCache.txt
+.codelite/
+.boglfw_path
+cmake_install.cmake
