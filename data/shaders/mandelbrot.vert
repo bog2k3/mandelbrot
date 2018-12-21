@@ -8,7 +8,7 @@ varying vec2 outUV;
 
 void main() {
     gl_Position = vec4(position, 0.5, 1);
-	vec2 aspectCorection = vec2(aspectRatio, 1.f);
+	vec2 aspectCorection = vec2(aspectRatio, 1.0);
 	vec2 transformedPos = position * aspectCorection * transform.z + transform.xy;
     outUV = transformedPos;
 }

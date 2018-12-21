@@ -1,3 +1,5 @@
+#version 130
+
 uniform int nIterations;
 varying vec2 outUV;
 

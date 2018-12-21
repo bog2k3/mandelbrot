@@ -111,7 +111,7 @@ private:
 	uint16_t indices_[6];
 };
 
-int Mandelbrot::nIterations = 16;
+int Mandelbrot::nIterations = 24;
 bool drawInfo = true;
 
 void onInputEventHandler(InputEvent& ev) {
