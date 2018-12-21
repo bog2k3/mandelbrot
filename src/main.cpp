@@ -125,8 +125,10 @@ int main(int argc, char* argv[]) {
 
 		// initialize stuff:
 		int winW = 1280, winH = 720;
-		if (!gltInit(winW, winH, "GLMandlebrot"))
+		if (!gltInit(winW, winH, "GLMandlebrot")) {
+			ERROR("Cannot initialize openGL!");
 			return -1;
+		}
 
 		GLFWInput::initialize(gltGetWindow());
 		GLFWInput::onInputEvent.add(onInputEventHandler);
