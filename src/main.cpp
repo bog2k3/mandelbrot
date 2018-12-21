@@ -1,6 +1,7 @@
 #include <boglfw/renderOpenGL/glToolkit.h>
 #include <boglfw/renderOpenGL/Renderer.h>
 #include <boglfw/renderOpenGL/Viewport.h>
+#include <boglfw/renderOpenGL/Camera.h>
 #include <boglfw/renderOpenGL/GLText.h>
 #include <boglfw/renderOpenGL/IRenderable.h>
 #include <boglfw/renderOpenGL/shader.h>
@@ -28,29 +29,25 @@
 class Mandelbrot : public IRenderable {
 public:
 
-	int nIterations = 2;
+	static int nIterations;
 
 	Mandelbrot(Renderer* r) {
+		LOGPREFIX("Mandelbrot ctor");
 		r->registerRenderable(this);
 		shaderProgram_ = Shaders::createProgram("data/shaders/mandelbrot.vert", "data/shaders/mandelbrot.frag");
 		if (shaderProgram_ == 0) {
 			throw std::runtime_error("Unable to load mandelbrot shaders!!");
 		}
 		indexPos_ = glGetAttribLocation(shaderProgram_, "position");
-		checkGLError("getattrLoc");
-		indexUV_ = glGetAttribLocation(shaderProgram_, "uv");
-		checkGLError("getattrLoc");
 		indexIterations_ = glGetUniformLocation(shaderProgram_, "nIterations");
+		indexTransform_ = glGetUniformLocation(shaderProgram_, "transform");
+		indexAspectRatio_ = glGetUniformLocation(shaderProgram_, "aspectRatio");
 		checkGLError("getattrLoc");
 
 		positions_[0] = {-1.f, -1.f};	// bottom left
 		positions_[1] = {-1.f, +1.f};	// top left
 		positions_[2] = {+1.f, +1.f};	// top right
 		positions_[3] = {+1.f, -1.f};	// bottom right
-		UVs_[0] = {0.f, 0.f};	// bottom left
-		UVs_[1] = {0.f, 1.f};	// top left
-		UVs_[2] = {1.f, 1.f};	// top right
-		UVs_[3] = {1.f, 0.f};	// bottom right
 		indices_[0] = 0;
 		indices_[1] = 1;
 		indices_[2] = 2;
@@ -64,26 +61,22 @@ public:
 	 */
 	void render(Viewport* pCrtViewport, unsigned batchId) override {
 		glUseProgram(shaderProgram_);
-		checkGLError("mandelbrot render 0a");
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		checkGLError("mandelbrot render 0b");
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		checkGLError("mandelbrot render 1");
 		glEnableVertexAttribArray(indexPos_);
-		checkGLError("mandelbrot render 2");
-		glEnableVertexAttribArray(indexUV_);
-		checkGLError("mandelbrot render 3");
 		glUniform1i(indexIterations_, nIterations);
-		checkGLError("mandelbrot render 4");
+		float scale = pCrtViewport->height() * 0.5f / pCrtViewport->camera()->getOrthoZoom();
+		glm::vec2 translation = vec3xy(pCrtViewport->camera()->position());
+		glm::vec3 tr(translation.x, translation.y, scale);
+		glUniform3fv(indexTransform_, 1, &tr.x);
+		glUniform1f(indexAspectRatio_, pCrtViewport->aspect());
 		glDisable(GL_CULL_FACE); // TODO do we need this?
-		checkGLError("mandelbrot render 5");
+		checkGLError("mandelbrot setup");
 
 		glVertexAttribPointer(indexPos_, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), &positions_[0]);
-		checkGLError("mandelbrot render 6");
-		glVertexAttribPointer(indexUV_, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), &UVs_[0]);
-		checkGLError("mandelbrot render 7");
+
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, &indices_[0]);
-		checkGLError("mandelbrot render 8");
+		checkGLError("mandelbrot render");
 	}
 
 	// this signals the component to treat all following draw commands as a new batch, and render them
@@ -110,17 +103,47 @@ public:
 private:
 	int shaderProgram_;
 	int indexPos_;
-	int indexUV_;
 	int indexIterations_;
+	int indexTransform_;
+	int indexAspectRatio_;
 
 	glm::vec2 positions_[4];
-	glm::vec2 UVs_[4];
 	uint16_t indices_[6];
 };
+
+int Mandelbrot::nIterations = 2;
+bool drawInfo = true;
 
 void onInputEventHandler(InputEvent& ev) {
 	if (ev.isConsumed())
 		return;
+	switch (ev.type) {
+		case InputEvent::EV_KEY_CHAR:
+		switch (ev.ch) {
+			case '-': if (Mandelbrot::nIterations > 1) Mandelbrot::nIterations--; break;
+			case '+':
+			case '=': Mandelbrot::nIterations++; break;
+			case ' ': drawInfo = !drawInfo;
+			default: break;
+		}
+		break;
+		default: break;
+	}
+}
+
+ScaleDisplay scale({15, 25}, 0, 300);
+
+void renderInfo(Viewport* vp) {
+	if (!drawInfo)
+		return;
+		
+	scale.draw(vp);
+	
+	std::stringstream ss;
+	ss << "Iterations: " << Mandelbrot::nIterations << "; Use +/- to increase/decrease";
+	GLText::get()->print(ss.str(), {15.f, 50.f}, 0, 16, glm::vec3(1.f, 1.f, 1.f));
+	
+	GLText::get()->print("Use SPACE to toggle info display ON/OFF", {15.f, 70.f}, 0, 16, glm::vec3(1.f, 1.f, 1.f));
 }
 
 int main(int argc, char* argv[]) {
@@ -136,16 +159,15 @@ int main(int argc, char* argv[]) {
 	auto vp = std::make_unique<Viewport>(0, 0, winW, winH);
 	auto vp1 = vp.get();
 	renderer.addViewport("main", std::move(vp));
+	vp1->camera()->setOrthoZoom(winH / 2.f);
 
 	Mandelbrot m(&renderer);
 
 	OperationsStack opStack(vp1, nullptr, nullptr);
 	opStack.pushOperation(std::unique_ptr<IOperation>(new OperationPan(InputEvent::MB_RIGHT)));
 
-	ScaleDisplay scale({15, 25}, 0, 300);
-
 	std::vector<drawable> drawList;
-	drawList.push_back(&scale);
+	drawList.push_back(&renderInfo);
 	vp1->setDrawList(drawList);
 
 	while (GLFWInput::checkInput()) {
