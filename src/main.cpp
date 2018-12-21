@@ -63,8 +63,11 @@ public:
 	 * This is called on the object at each frame, for each active viewport, for each draw batch
 	 */
 	void render(Viewport* pCrtViewport, unsigned batchId) override {
-		checkGLError("mandelbrot render 0");
+		glUseProgram(shaderProgram_);
+		checkGLError("mandelbrot render 0a");
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		checkGLError("mandelbrot render 0b");
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		checkGLError("mandelbrot render 1");
 		glEnableVertexAttribArray(indexPos_);
 		checkGLError("mandelbrot render 2");
@@ -75,11 +78,11 @@ public:
 		glDisable(GL_CULL_FACE); // TODO do we need this?
 		checkGLError("mandelbrot render 5");
 
-		glVertexAttribPointer(indexPos_, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), positions_);
+		glVertexAttribPointer(indexPos_, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), &positions_[0]);
 		checkGLError("mandelbrot render 6");
-		glVertexAttribPointer(indexUV_, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), UVs_);
+		glVertexAttribPointer(indexUV_, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), &UVs_[0]);
 		checkGLError("mandelbrot render 7");
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices_);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, &indices_[0]);
 		checkGLError("mandelbrot render 8");
 	}
 
@@ -121,44 +124,41 @@ void onInputEventHandler(InputEvent& ev) {
 }
 
 int main(int argc, char* argv[]) {
-	do {
+	// initialize stuff:
+	int winW = 1280, winH = 720;
+	if (!gltInit(winW, winH, "GLMandlebrot"))
+		return -1;
 
-		// initialize stuff:
-		int winW = 1280, winH = 720;
-		if (!gltInit(winW, winH, "GLMandlebrot"))
-			return -1;
+	GLFWInput::initialize(gltGetWindow());
+	GLFWInput::onInputEvent.add(onInputEventHandler);
 
-		GLFWInput::initialize(gltGetWindow());
-		GLFWInput::onInputEvent.add(onInputEventHandler);
+	Renderer renderer(winW, winH);
+	auto vp = std::make_unique<Viewport>(0, 0, winW, winH);
+	auto vp1 = vp.get();
+	renderer.addViewport("main", std::move(vp));
 
-		Renderer renderer(winW, winH);
-		auto vp = std::make_unique<Viewport>(0, 0, winW, winH);
-		auto vp1 = vp.get();
-		renderer.addViewport("main", std::move(vp));
+	Mandelbrot m(&renderer);
 
-		Mandelbrot m(&renderer);
+	OperationsStack opStack(vp1, nullptr, nullptr);
+	opStack.pushOperation(std::unique_ptr<IOperation>(new OperationPan(InputEvent::MB_RIGHT)));
 
-		OperationsStack opStack(vp1, nullptr, nullptr);
-		opStack.pushOperation(std::unique_ptr<IOperation>(new OperationPan(InputEvent::MB_RIGHT)));
+	ScaleDisplay scale({15, 25}, 0, 300);
 
-		ScaleDisplay scale({15, 25}, 0, 300);
+	std::vector<drawable> drawList;
+	drawList.push_back(&scale);
+	vp1->setDrawList(drawList);
 
-		/*std::vector<drawable> drawList;
-		drawList.push_back(&scale);
-		vp1->setDrawList(drawList);*/
+	while (GLFWInput::checkInput()) {
+		// wait until previous frame finishes rendering and show frame output:
+		gltEnd();
+		gltBegin();
+		renderer.startBatch();
+		renderer.render();
+		// now rendering is on-going, move on to the next update:
+	}
 
-		while (GLFWInput::checkInput()) {
-			// wait until previous frame finishes rendering and show frame output:
-			gltEnd();
-			gltBegin();
-			renderer.startBatch();
-			renderer.render();
-			// now rendering is on-going, move on to the next update:
-		}
-
-		renderer.unload();
-		Infrastructure::shutDown();
-	} while (0);
+	renderer.unload();
+	Infrastructure::shutDown();
 
 	return 0;
 }
