@@ -38,22 +38,34 @@ public:
 		if (shaderProgram_ == 0) {
 			throw std::runtime_error("Unable to load mandelbrot shaders!!");
 		}
-		indexPos_ = glGetAttribLocation(shaderProgram_, "position");
+		unsigned indexPos = glGetAttribLocation(shaderProgram_, "position");
 		indexIterations_ = glGetUniformLocation(shaderProgram_, "nIterations");
 		indexTransform_ = glGetUniformLocation(shaderProgram_, "transform");
 		indexAspectRatio_ = glGetUniformLocation(shaderProgram_, "aspectRatio");
 		checkGLError("getattrLoc");
 
-		positions_[0] = {-1.f, -1.f};	// bottom left
-		positions_[1] = {-1.f, +1.f};	// top left
-		positions_[2] = {+1.f, +1.f};	// top right
-		positions_[3] = {+1.f, -1.f};	// bottom right
-		indices_[0] = 0;
-		indices_[1] = 1;
-		indices_[2] = 2;
-		indices_[3] = 0;
-		indices_[4] = 2;
-		indices_[5] = 3;
+		glm::vec2 positions[] {
+			{-1.f, -1.f},	// bottom left
+			{-1.f, +1.f},	// top left
+			{+1.f, +1.f},	// top right
+			{+1.f, -1.f},	// bottom right
+		};
+		uint16_t indices[] {
+			0, 1, 2, 0, 2, 3
+		};
+
+		glGenVertexArrays(1, &VAO_);
+		glBindVertexArray(VAO_);
+		glGenBuffers(1, &VBO_);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO_);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(indexPos);
+		glVertexAttribPointer(indexPos, 2, GL_FLOAT, GL_FALSE, sizeof(positions[0]), 0);
+		glGenBuffers(1, &IBO_);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+		glBindVertexArray(0);
 	}
 
 	/*
@@ -61,9 +73,8 @@ public:
 	 */
 	void render(Viewport* pCrtViewport, unsigned batchId) override {
 		glUseProgram(shaderProgram_);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		glEnableVertexAttribArray(indexPos_);
+		glBindVertexArray(VAO_);
+
 		glUniform1i(indexIterations_, nIterations);
 		float scale = pCrtViewport->height() * 0.5f / pCrtViewport->camera()->getOrthoZoom();
 		glm::vec2 translation = vec3xy(pCrtViewport->camera()->position());
@@ -73,10 +84,11 @@ public:
 		glDisable(GL_CULL_FACE); // TODO do we need this?
 		checkGLError("mandelbrot setup");
 
-		glVertexAttribPointer(indexPos_, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), &positions_[0]);
-
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, &indices_[0]);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 		checkGLError("mandelbrot render");
+
+		glBindVertexArray(0);
+		glUseProgram(0);
 	}
 
 	// this signals the component to treat all following draw commands as a new batch, and render them
@@ -84,15 +96,19 @@ public:
 	void startBatch() override {
 	}
 
-	/**
-	 * Called once per frame, after viewports are finished, to clear queued data
-	 */
+	void setupFrameData() override {
+	}
+
+	// Called once per frame, after viewports are finished, to clear queued data
 	void purgeRenderQueue() override {
 	}
 
 	// called once when the renderer is destroyed to release all resources associated with this renderable.
 	void unload() override {
 		glDeleteProgram(shaderProgram_);
+		glDeleteVertexArrays(1, &VAO_);
+		glDeleteBuffers(1, &VBO_);
+		glDeleteBuffers(1, &IBO_);
 	}
 
 	const char* getName() const override {
@@ -102,13 +118,12 @@ public:
 
 private:
 	int shaderProgram_;
-	int indexPos_;
 	int indexIterations_;
 	int indexTransform_;
 	int indexAspectRatio_;
-
-	glm::vec2 positions_[4];
-	uint16_t indices_[6];
+	unsigned VAO_;
+	unsigned VBO_;
+	unsigned IBO_;
 };
 
 int Mandelbrot::nIterations = 24;
