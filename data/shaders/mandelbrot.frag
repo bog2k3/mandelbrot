@@ -21,21 +21,15 @@ vec3 mandelbrot(vec2 c, int iter) {
 
 vec3 mapInValue(float len) {
 	// len is between 0.0 and 2.0
-	return vec3(0.0, 0.0, 0.5 + len / 4.0);
+	return vec3(0, 0, 0); //vec3(0.0, 0.0, 0.5 + len / 4.0);
 }
 
 vec3 mapOutValue(float len, vec3 v) {
-	/*
-	if (isinf(len)) {
-		v = v * 1.0e-10;
-		len = max(2.0, length(v));
-	} else {
-		v = v;
-		len = len;
-	}
-	return vec3(0.7 + pow(0.3 / (len - 1.0), 0.1), 0.0, 0.0);
-	*/
-	return vec3(v.z / 40, 0.0, 0.0);
+	float i = pow(v.z / nIterations, 2);
+	float r = i;
+	float g = max(0.0, i-0.5) * 1.5;
+
+	return vec3(r, g, 0.0);
 }
 
 vec3 mapValue(vec3 v) {
