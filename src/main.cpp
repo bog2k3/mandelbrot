@@ -164,7 +164,8 @@ void renderInfo(Viewport* vp) {
 int main(int argc, char* argv[]) {
 	// initialize stuff:
 	int winW = 1280, winH = 720;
-	if (!gltInit(winW, winH, "GLMandlebrot")) {
+	SSDescriptor ssdesc {2, 2}; // 2x2 super samples
+	if (!gltInitSupersampled(winW, winH, ssdesc, "GLMandlebrot")) {
 		ERROR("Cannot initialize openGL!");
 		return -1;
 	}
@@ -181,7 +182,7 @@ int main(int argc, char* argv[]) {
 	Mandelbrot m(&renderer);
 
 	OperationsStack opStack(vp1, nullptr, nullptr);
-	opStack.pushOperation(std::unique_ptr<IOperation>(new OperationPan(InputEvent::MB_RIGHT)));
+	opStack.pushOperation(std::unique_ptr<IOperation>(new OperationPan(InputEvent::MB_LEFT)));
 
 	std::vector<drawable> drawList;
 	drawList.push_back(&renderInfo);
