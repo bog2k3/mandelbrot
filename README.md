@@ -3,7 +3,8 @@ mandelbrot set renderer using openGL, written in C++
 (uses boglfw library from https://github.com/bog2k3/boglfw.git)
 
 Renders the classic Mandelbrot set using the GPU. 
-Being GPU based, it is very fast, allowing for real-time exploration of the fractal even at high iteration levels (80+), however the floating-point precision of the GPU will limit how much you can zoom in - the visible noise limit is at around 10^-5 scale.
+Being GPU based, it is very fast, allowing for real-time exploration of the fractal even at high iteration levels (80+), 
+however the floating-point precision of the GPU will limit how much you can zoom in - the visible noise limit is at around 10^-5 scale.
 The number of iterations is adjustable with the +/- keys.
 You can click and drag the image to navigate and use the wheel to zoom in/out.
 In the top-left corner there's a scale display that shows how far in you are zoomed.
