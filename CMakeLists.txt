@@ -27,6 +27,8 @@ endif()
 file(GLOB_RECURSE sources	src/*.h)
 file(GLOB_RECURSE sources 	src/*.cpp)
 
+file( GLOB_RECURSE dataFiles	${BOGLFW_DIST_DIR}/data/*.* )
+
 add_executable(GLMandelbrot ${sources})
 
 #add libraries
@@ -46,8 +48,7 @@ target_compile_options(GLMandelbrot PUBLIC -Wall -std=c++14)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
-ADD_CUSTOM_COMMAND(
-	TARGET GLMandelbrot
-	PRE_BUILD
+ADD_CUSTOM_TARGET(doAlways ALL
+	SOURCES "${dataFiles}"
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${BOGLFW_DIST_DIR}/data $<TARGET_FILE_DIR:GLMandelbrot>/data
 )
