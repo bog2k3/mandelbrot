@@ -45,3 +45,9 @@ set_property(TARGET GLMandelbrot PROPERTY CXX_STANDARD 14)
 target_compile_options(GLMandelbrot PUBLIC -Wall -std=c++14)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
+
+ADD_CUSTOM_COMMAND(
+	TARGET GLMandelbrot
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${BOGLFW_DIST_DIR}/data $<TARGET_FILE_DIR:GLMandelbrot>/data
+)

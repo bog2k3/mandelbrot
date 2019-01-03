@@ -164,7 +164,7 @@ void renderInfo(Viewport* vp) {
 int main(int argc, char* argv[]) {
 	// initialize stuff:
 	int winW = 1280, winH = 720;
-	SSDescriptor ssdesc {2, 2}; // 2x2 super samples
+	SSDescriptor ssdesc {SSDescriptor::SS_4X}; // 2x2 super samples
 	if (!gltInitSupersampled(winW, winH, ssdesc, "GLMandlebrot")) {
 		ERROR("Cannot initialize openGL!");
 		return -1;
