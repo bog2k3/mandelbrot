@@ -151,13 +151,13 @@ ScaleDisplay scale({15, 25}, 0, 300);
 void renderInfo(Viewport* vp) {
 	if (!drawInfo)
 		return;
-		
+
 	scale.draw(vp);
-	
+
 	std::stringstream ss;
 	ss << "Iterations: " << Mandelbrot::nIterations << "; Use +/- to increase/decrease";
 	GLText::get()->print(ss.str(), {15.f, 50.f}, 0, 16, glm::vec3(1.f, 1.f, 1.f));
-	
+
 	GLText::get()->print("Use SPACE to toggle info display ON/OFF", {15.f, 70.f}, 0, 16, glm::vec3(1.f, 1.f, 1.f));
 }
 
@@ -165,7 +165,7 @@ int main(int argc, char* argv[]) {
 	// initialize stuff:
 	int winW = 1280, winH = 720;
 	SSDescriptor ssdesc {SSDescriptor::SS_9X}; // 2x2 super samples
-	if (!gltInitSupersampled(winW, winH, ssdesc, "GLMandlebrot")) {
+	if (!gltInitGLFWSupersampled(winW, winH, ssdesc, "GLMandlebrot")) {
 		ERROR("Cannot initialize openGL!");
 		return -1;
 	}
